@@ -1,12 +1,14 @@
 package com.example.kotlin_mvvm_slackclone.presentation.viewmodels
 
 import android.app.Application
+import android.os.Build
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.kotlin_mvvm_slackclone.data.MockData
 import com.example.kotlin_mvvm_slackclone.data.models.ChannelThread
 import com.example.kotlin_mvvm_slackclone.data.models.SubChannel
 import com.example.kotlin_mvvm_slackclone.domain.repository.ChannelThreadRepository
@@ -23,6 +25,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.util.*
 import javax.inject.Inject
 
 @HiltViewModel
@@ -46,6 +52,9 @@ class ChannelDetailsViewModel @Inject constructor(
     private val _showSearchBar= MutableStateFlow(false)
     val showSearchBar=_showSearchBar.asStateFlow()
 
+    // channel thread fields
+    var channelThreadField by mutableStateOf("")
+        private set
 
     fun loadStuff(){
         viewModelScope.launch {
@@ -73,6 +82,45 @@ class ChannelDetailsViewModel @Inject constructor(
             is ChannelEvents.AddChannelThread->{
                 sendUIEvent(UIEvent.NavigateToNewIntentWithId(Routes.ADD_CHANNEL_POST_ROUTE,event.channelId))
             }
+            is ChannelEvents.OnChannelThreadDetailsChange->{
+                channelThreadField=event.channelDetails
+            }
+            is ChannelEvents.OnCreateChannelThread->{
+                val threadDetails=event.channelDetails
+                val channelId=event.channelId
+                val userId=event.threadByUserId
+                val formatter = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")
+                } else {
+                    TODO("VERSION.SDK_INT < O")
+                }
+                val threadPostDate = LocalDateTime.now().format(formatter)
+
+                val reactionList= listOf(0,0,0)
+                val replyCount=0
+                if(threadDetails.isNullOrEmpty()){
+                    sendUIEvent(UIEvent.ShowSnackBar("Thread details is required !"))
+                }else{
+                    val thread=ChannelThread(
+                        (3..100).random(),
+                        userId,
+                        threadPostDate,
+                        channelId,
+                        reactionList,
+                        replyCount,
+                        threadDetails,
+                    "abcd"
+                    )
+                    viewModelScope.launch {
+                        Log.d("threadIs",thread.toString())
+                        addThreadPost(thread)
+                        sendUIEvent(UIEvent.ShowSnackBar("Thread created successfully"))
+                    }
+                }
+            }
         }
+    }
+    private suspend fun addThreadPost(thread: ChannelThread){
+        channelThreadRepository.createChannelThread(thread)
     }
 }

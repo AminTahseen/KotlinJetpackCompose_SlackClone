@@ -11,7 +11,13 @@ sealed class ChannelEvents{
         val masterChannelId:Int
         ):ChannelEvents()
     data class ShowChannelDetails(val channelId:Int):ChannelEvents()
+    //channel thread events
     data class ShowSearchBar(val showSearch:Boolean):ChannelEvents()
     data class AddChannelThread(val channelId:Int):ChannelEvents()
-
+    data class OnChannelThreadDetailsChange(val channelDetails:String):ChannelEvents()
+    data class OnCreateChannelThread(
+        val channelDetails:String,
+        val threadByUserId:Int,
+        val channelId:Int
+    ):ChannelEvents()
 }

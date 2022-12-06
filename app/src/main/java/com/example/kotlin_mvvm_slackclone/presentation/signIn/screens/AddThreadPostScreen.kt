@@ -5,6 +5,7 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,6 +26,8 @@ import com.example.kotlin_mvvm_slackclone.common.AppbarChannelInside
 import com.example.kotlin_mvvm_slackclone.presentation.events.ChannelEvents
 import com.example.kotlin_mvvm_slackclone.presentation.viewmodels.ChannelDetailsViewModel
 import com.example.kotlin_mvvm_slackclone.ui.theme.SlackRed
+import com.example.kotlin_mvvm_slackclone.utils.PrefManager
+import com.example.kotlin_mvvm_slackclone.utils.UIEvent
 
 @Composable
 fun AddThreadPostScreen(
@@ -39,6 +42,21 @@ fun AddThreadPostScreen(
     val activity = (context as? Activity)
     viewModel.onEvent(ChannelEvents.ShowChannelDetails(channelId))
     val subChannel=viewModel.subChannel?.collectAsState(initial = null)
+    LaunchedEffect(key1 = true) {
+        viewModel.uiEvent.collect{value: UIEvent ->
+            when(value){
+                is UIEvent.ShowSnackBar->{
+                    scaffoldState.snackbarHostState.showSnackbar(
+                        message = value.message,
+                    )
+                }
+                else->{
+
+                }
+            }
+        }
+    }
+
     Scaffold(modifier = Modifier,
         scaffoldState = scaffoldState,
         topBar = {
@@ -80,7 +98,7 @@ fun AddThreadPostScreen(
                 .verticalScroll(rememberScrollState())
         ) {
             TextField(
-                value = "",
+                value = viewModel.channelThreadField,
                 modifier = Modifier
                     .padding(
                         start = 5.dp,
@@ -88,7 +106,9 @@ fun AddThreadPostScreen(
                     )
                     .fillMaxWidth()
                     .height(screenHeight * 0.81f),
-                onValueChange = {
+                onValueChange =
+                { value->
+                    viewModel.onEvent(ChannelEvents.OnChannelThreadDetailsChange(value))
                 },
                 colors= TextFieldDefaults.textFieldColors(
                     backgroundColor= Color.Transparent,
@@ -97,7 +117,7 @@ fun AddThreadPostScreen(
                 ),
                 textStyle = TextStyle(
                     fontSize = 16.sp,
-                    color = Color.White,
+                    color = Color.Black,
                 ),
                 placeholder = {
                     Text("What's on your mind ?",
@@ -108,12 +128,19 @@ fun AddThreadPostScreen(
                     )
                 }
             )
-            PostOptions(screenHeight,screenWidth)
+            PostOptions(screenHeight,screenWidth,viewModel,channelId)
         }
     }
 }
 @Composable
-fun PostOptions(screenHeight: Dp, screenWidth: Dp) {
+fun PostOptions(
+    screenHeight: Dp,
+    screenWidth: Dp,
+    viewModel: ChannelDetailsViewModel,
+    channelId: Int
+) {
+    val prefManager= PrefManager(LocalContext.current)
+
     Row(modifier = Modifier
         .fillMaxWidth()
         .padding(top=10.dp)
@@ -126,7 +153,16 @@ fun PostOptions(screenHeight: Dp, screenWidth: Dp) {
            OptionItem(painterResource(R.drawable.emoji), Color.DarkGray)
            OptionItem(painterResource(R.drawable.mentions_grey), Color.DarkGray)
        }
-        Button(onClick = {
+        Button(onClick =
+        {
+        viewModel.onEvent(
+            ChannelEvents.OnCreateChannelThread
+                (
+            viewModel.channelThreadField,
+                prefManager.userGsonToObj(prefManager.loggedInUserValue).id,
+                channelId
+            )
+        )
         },
             colors = ButtonDefaults.buttonColors(backgroundColor = SlackRed)
             , modifier = Modifier.padding(bottom = 10.dp)
@@ -145,7 +181,7 @@ fun OptionItem(painterResource: Painter, color: Color) {
             contentScale = ContentScale.Fit,
             modifier = Modifier
                 .height(50.dp)
-                .padding(end = 10.dp)
+                .padding(10.dp)
                 .clickable {
 
                 },

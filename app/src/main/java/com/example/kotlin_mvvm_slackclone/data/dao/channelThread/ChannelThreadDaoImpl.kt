@@ -1,5 +1,6 @@
 package com.example.kotlin_mvvm_slackclone.data.dao.channelThread
 
+import android.util.Log
 import com.example.kotlin_mvvm_slackclone.data.MockData
 import com.example.kotlin_mvvm_slackclone.data.models.ChannelThread
 import kotlinx.coroutines.flow.Flow
@@ -10,7 +11,11 @@ class ChannelThreadDaoImpl:ChannelThreadDao {
     private val channelThreadList= MutableStateFlow(MockData.subChannelThreadList.reversed())
 
     override suspend fun createChannelThread(channelThread: ChannelThread) {
-        MockData.subChannelThreadList.toMutableList().add(channelThread)
+        Log.d("InsideThis","heree")
+        Log.d("InsideThis",channelThread.toString())
+        MockData.subChannelThreadList.add(channelThread)
+        Log.d("InsideThis",MockData.subChannelThreadList.size.toString())
+
     }
 
     override fun getChannelThreads(channelId: Int): Flow<List<ChannelThread>> {
@@ -19,6 +24,9 @@ class ChannelThreadDaoImpl:ChannelThreadDao {
                 channelThread.channelId==channelId
             }
         }
+        Log.d("InsideThis",MockData.subChannelThreadList.toString())
+        Log.d("InsideThis",list.toString())
+
         return list
     }
 
