@@ -6,4 +6,6 @@ sealed class UIEvent{
     data class NavigateToNewIntent(val intent:String):UIEvent()
     data class NavigateToNewIntentWithId(val intent:String,val id:Int):UIEvent()
     data class LoadDataAgain(val load:Boolean) : UIEvent()
+    object Loader: UIEvent()
+
 }

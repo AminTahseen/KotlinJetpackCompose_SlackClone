@@ -1,6 +1,5 @@
 package com.example.kotlin_mvvm_slackclone.data.dao.subChannel
 
-import android.util.Log
 import com.example.kotlin_mvvm_slackclone.data.MockData
 import com.example.kotlin_mvvm_slackclone.data.models.SubChannel
 import kotlinx.coroutines.flow.*
@@ -13,7 +12,6 @@ class SubChannelDaoImpl:SubChannelDao {
     }
 
     override fun getSubChannelChannels(masterChannelId: Int,visibility:Boolean): Flow<List<SubChannel>> {
-        Log.d("SUBLIST","$masterChannelId, $visibility")
         val list=listFlowOfSubChannels.map {
            it.filter {subChannel ->
            subChannel.mainMasterChannelId===masterChannelId

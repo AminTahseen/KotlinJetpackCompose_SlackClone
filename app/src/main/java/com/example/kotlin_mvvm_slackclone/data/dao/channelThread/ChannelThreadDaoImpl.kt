@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 
 class ChannelThreadDaoImpl:ChannelThreadDao {
-    private val channelThreadList= MutableStateFlow(MockData.subChannelThreadList.reversed())
+    private val channelThreadList= MutableStateFlow(MockData.subChannelThreadList)
 
     override suspend fun createChannelThread(channelThread: ChannelThread) {
         Log.d("InsideThis","heree")
@@ -21,7 +21,7 @@ class ChannelThreadDaoImpl:ChannelThreadDao {
     override fun getChannelThreads(channelId: Int): Flow<List<ChannelThread>> {
         val list=channelThreadList.map {
             it.filter { channelThread ->
-                channelThread.channelId==channelId
+                channelThread.channelId===channelId
             }
         }
         Log.d("InsideThis",MockData.subChannelThreadList.toString())

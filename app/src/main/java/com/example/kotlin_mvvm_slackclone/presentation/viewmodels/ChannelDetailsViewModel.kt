@@ -20,16 +20,14 @@ import com.example.kotlin_mvvm_slackclone.utils.UIEvent
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
 import javax.inject.Inject
+import kotlin.math.log
 
 @HiltViewModel
 class ChannelDetailsViewModel @Inject constructor(
@@ -44,7 +42,8 @@ class ChannelDetailsViewModel @Inject constructor(
         private set
 
     var subChannel: Flow<SubChannel?>? =null
-    var channelThreads:Flow<List<ChannelThread>>?=null
+
+    var channelThreads= emptyFlow<List<ChannelThread>>()
 
     private val _isLoading= MutableStateFlow(false)
     val isLoading=_isLoading.asStateFlow()
@@ -56,6 +55,9 @@ class ChannelDetailsViewModel @Inject constructor(
     var channelThreadField by mutableStateOf("")
         private set
 
+    init {
+        Log.d("channelThreadListView",MockData.subChannelThreadList.size.toString())
+    }
     fun loadStuff(){
         viewModelScope.launch {
             _isLoading.value=true
@@ -72,9 +74,11 @@ class ChannelDetailsViewModel @Inject constructor(
     fun onEvent(event: ChannelEvents){
         when(event) {
             is ChannelEvents.ShowChannelDetails->{
+                Log.d("channelThreadListView2",MockData.subChannelThreadList.size.toString())
                 channelIdValue=event.channelId
                 subChannel=subChannelRepository.getSubChannelById(channelIdValue)
-                channelThreads=channelThreadRepository.getChannelThreads(channelId = event.channelId)
+                channelThreads=channelThreadRepository.getChannelThreads(channelIdValue)
+
             }
             is ChannelEvents.ShowSearchBar->{
                 _showSearchBar.value=event.showSearch
@@ -96,7 +100,6 @@ class ChannelDetailsViewModel @Inject constructor(
                 }
                 val threadPostDate = LocalDateTime.now().format(formatter)
 
-                val reactionList= listOf(0,0,0)
                 val replyCount=0
                 if(threadDetails.isNullOrEmpty()){
                     sendUIEvent(UIEvent.ShowSnackBar("Thread details is required !"))
@@ -106,20 +109,21 @@ class ChannelDetailsViewModel @Inject constructor(
                         userId,
                         threadPostDate,
                         channelId,
-                        reactionList,
+                        emptyList(),
                         replyCount,
-                        threadDetails,
-                    "abcd"
+                        threadDetails
                     )
                     viewModelScope.launch {
-                        Log.d("threadIs",thread.toString())
                         addThreadPost(thread)
+                        Log.d("threadSize",MockData.subChannelThreadList.size.toString())
                         sendUIEvent(UIEvent.ShowSnackBar("Thread created successfully"))
+                        sendUIEvent(UIEvent.Loader)
                     }
                 }
             }
         }
     }
+
     private suspend fun addThreadPost(thread: ChannelThread){
         channelThreadRepository.createChannelThread(thread)
     }
