@@ -1,37 +1,36 @@
 package com.example.kotlin_mvvm_slackclone.presentation.viewmodels
 
-import android.app.Application
+import android.content.Context
+import android.net.Uri
 import android.os.Build
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.kotlin_mvvm_slackclone.common.utils.FileUtils
 import com.example.kotlin_mvvm_slackclone.data.MockData
 import com.example.kotlin_mvvm_slackclone.data.models.ChannelThread
 import com.example.kotlin_mvvm_slackclone.data.models.SubChannel
 import com.example.kotlin_mvvm_slackclone.domain.repository.ChannelThreadRepository
 import com.example.kotlin_mvvm_slackclone.domain.repository.SubChannelRepository
-import com.example.kotlin_mvvm_slackclone.domain.repository.UsersRepository
 import com.example.kotlin_mvvm_slackclone.presentation.events.ChannelEvents
 import com.example.kotlin_mvvm_slackclone.utils.Routes
 import com.example.kotlin_mvvm_slackclone.utils.UIEvent
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
+import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.util.*
 import javax.inject.Inject
-import kotlin.math.log
 
 @HiltViewModel
+@Suppress("UNNECESSARY_SAFE_CALL")
 class ChannelDetailsViewModel @Inject constructor(
-    application: Application,
     private val subChannelRepository: SubChannelRepository,
     private val channelThreadRepository: ChannelThreadRepository,
 ): ViewModel() {
@@ -43,7 +42,7 @@ class ChannelDetailsViewModel @Inject constructor(
 
     var subChannel: Flow<SubChannel?>? =null
 
-    var channelThreads= emptyFlow<List<ChannelThread>>()
+   var channelThreads= emptyFlow<List<ChannelThread>>()
 
     private val _isLoading= MutableStateFlow(false)
     val isLoading=_isLoading.asStateFlow()
@@ -58,13 +57,13 @@ class ChannelDetailsViewModel @Inject constructor(
     init {
         Log.d("channelThreadListView",MockData.subChannelThreadList.size.toString())
     }
-    fun loadStuff(){
-        viewModelScope.launch {
-            _isLoading.value=true
-            delay(3000L)
-            _isLoading.value=false
-        }
-    }
+//    fun loadStuff(){
+//        viewModelScope.launch {
+//            _isLoading.value=true
+//            delay(3000L)
+//            _isLoading.value=false
+//        }
+//    }
 
     private fun sendUIEvent(uiEvent: UIEvent){
         viewModelScope.launch {
@@ -93,6 +92,7 @@ class ChannelDetailsViewModel @Inject constructor(
                 val threadDetails=event.channelDetails
                 val channelId=event.channelId
                 val userId=event.threadByUserId
+                val imageUri=event.imageUri
                 val formatter = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")
                 } else {
@@ -101,30 +101,78 @@ class ChannelDetailsViewModel @Inject constructor(
                 val threadPostDate = LocalDateTime.now().format(formatter)
 
                 val replyCount=0
-                if(threadDetails.isNullOrEmpty()){
-                    sendUIEvent(UIEvent.ShowSnackBar("Thread details is required !"))
+                if(threadDetails.isNullOrEmpty() && imageUri==null){
+                    sendUIEvent(UIEvent.ShowSnackBar("Thread details are required !"))
                 }else{
-                    val thread=ChannelThread(
-                        (3..100).random(),
-                        userId,
-                        threadPostDate,
-                        channelId,
-                        emptyList(),
-                        replyCount,
-                        threadDetails
-                    )
+                    var thread: ChannelThread? =null
+                    if(imageUri!=null && !threadDetails.isNullOrEmpty())
+                    {
+                      thread = ChannelThread(
+                            (3..100).random(),
+                            userId,
+                            threadPostDate,
+                            channelId,
+                            emptyList(),
+                            replyCount,
+                            threadDetails,
+                            imageUri
+                        )
+                    }else if(imageUri==null && !threadDetails.isNullOrEmpty()){
+                        thread = ChannelThread(
+                            (3..100).random(),
+                            userId,
+                            threadPostDate,
+                            channelId,
+                            emptyList(),
+                            replyCount,
+                            threadDetails,
+                        )
+                    }else{
+                        thread = ChannelThread(
+                            (3..100).random(),
+                            userId,
+                            threadPostDate,
+                            channelId,
+                            emptyList(),
+                            replyCount,
+                            null,
+                            imageUri
+                        )
+                    }
                     viewModelScope.launch {
-                        addThreadPost(thread)
-                        Log.d("threadSize",MockData.subChannelThreadList.size.toString())
+                        if (thread != null) {
+                            addThreadPost(thread)
+                        }
+                        Log.d("threadSize", MockData.subChannelThreadList.size.toString())
                         sendUIEvent(UIEvent.ShowSnackBar("Thread created successfully"))
                         sendUIEvent(UIEvent.Loader)
                     }
                 }
+            }
+            is ChannelEvents.UpdateThreadReaction->{
+                val thread=event.thread
+                val reactionIndex=event.reactionIndex
+                val loggedInUserId=event.loggedInUserId
+                Log.d("ReactionIndex :",reactionIndex.toString())
+                when{
+                    thread.reactionList.isEmpty()->{
+
+                    }
+                }
+            }
+            else->{
+
             }
         }
     }
 
     private suspend fun addThreadPost(thread: ChannelThread){
         channelThreadRepository.createChannelThread(thread)
+    }
+
+    fun getVaultImageFromLocal(context: Context,imageUri: Uri):Uri{
+        val fileUtils= FileUtils()
+        val fullFilePath: String? =fileUtils.getPathFromUri(context = context, uri = imageUri)
+        return Uri.parse(fullFilePath)
     }
 }

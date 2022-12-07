@@ -56,7 +56,7 @@ fun AppbarLoggedIn(
         .background(SlackPurpleDark)
     ) {
         Image(
-          if(showBackBtn===false)
+          if(!showBackBtn)
               painterResource(R.drawable.slack_only_icon)
           else
               painterResource(R.drawable.ic_baseline_arrow_back_24)
@@ -113,7 +113,7 @@ fun AppbarChannelInside(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Image(
-            if(showBackBtn===false)
+            if(!showBackBtn)
                 painterResource(R.drawable.slack_only_icon)
             else
                 painterResource(R.drawable.ic_baseline_arrow_back_24)

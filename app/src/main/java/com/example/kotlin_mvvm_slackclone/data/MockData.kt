@@ -1,5 +1,6 @@
 package com.example.kotlin_mvvm_slackclone.data
 
+import android.net.Uri
 import com.example.kotlin_mvvm_slackclone.data.models.ChannelThread
 import com.example.kotlin_mvvm_slackclone.data.models.MasterChannel
 import com.example.kotlin_mvvm_slackclone.data.models.SubChannel
@@ -65,7 +66,7 @@ class MockData {
                 1,
                 "11 Sept 12:30 AM",
                 1,
-                listOf(1,2,3),
+                listOf(listOf(1,2,3),listOf(1),listOf(1,2)),
                 2,
                 "Some Dummy content goes here"
             ),
@@ -74,10 +75,9 @@ class MockData {
                 1,
                 "11 Sept 12:30 AM",
                 1,
-                listOf(1,2,3),
+                listOf(listOf(1,2,3),listOf(1),listOf(1,2)),
                 1,
-                "Another Dummy content goes here",
-            "https://via.placeholder.com/300x200"
+                "Another Dummy content goes here"
             )
         )
     }

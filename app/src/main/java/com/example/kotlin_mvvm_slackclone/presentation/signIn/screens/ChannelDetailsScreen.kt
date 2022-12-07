@@ -4,6 +4,7 @@ package com.example.kotlin_mvvm_slackclone.presentation.signIn.screens
 
 import android.app.Activity
 import android.content.Intent
+import android.net.Uri
 import android.util.Log
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -11,12 +12,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
-import androidx.compose.material.pullrefresh.pullRefresh
-import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,10 +43,12 @@ import com.example.kotlin_mvvm_slackclone.presentation.events.ChannelEvents
 import com.example.kotlin_mvvm_slackclone.presentation.viewmodels.AuthViewModel
 import com.example.kotlin_mvvm_slackclone.presentation.viewmodels.ChannelDetailsViewModel
 import com.example.kotlin_mvvm_slackclone.ui.theme.*
+import com.example.kotlin_mvvm_slackclone.utils.PrefManager
 import com.example.kotlin_mvvm_slackclone.utils.Routes
 import com.example.kotlin_mvvm_slackclone.utils.UIEvent
 import java.util.*
 
+@Suppress("UNNECESSARY_SAFE_CALL")
 @Composable
 fun ChannelDetailsScreen(
     channelId: Int,
@@ -144,8 +144,8 @@ fun ChannelDetailsScreen(
         ) {
 
             when {
-                channelThreadsList != null ->
-                    MainThreadsSection(channelThreadsList.value, viewModel, screenHeight)
+                channelThreadsList.value.isNotEmpty() ->
+                    MainThreadsSection(channelThreadsList.value, screenHeight,viewModel)
                 else ->
                     Text(text = "Loading...")
             }
@@ -153,21 +153,16 @@ fun ChannelDetailsScreen(
     }
 }
 
-@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun MainThreadsSection(
     value: List<ChannelThread>,
-    viewModel: ChannelDetailsViewModel,
-    screenHeight: Dp
+    screenHeight: Dp,
+    viewModel: ChannelDetailsViewModel
 ) {
     Log.d("channelThreadListSize",value.size.toString())
-    val isLoading by viewModel.isLoading.collectAsState()
-    val pullRefreshState =
-        rememberPullRefreshState(refreshing = isLoading, onRefresh = { viewModel.loadStuff() })
     val indicatorWidth = 1.dp
     Box(
         modifier = Modifier
-            .pullRefresh(pullRefreshState)
             .fillMaxWidth()
             .height(screenHeight)
             .drawBehind {
@@ -184,19 +179,28 @@ fun MainThreadsSection(
     {
         LazyColumn {
             items(value.reversed()) { item ->
-                MainThreadSectionListItem(item)
+                MainThreadSectionListItem(item,viewModel, functionPerform = {
+                    Log.d("ThreadItem",item.id.toString())
+                })
             }
         }
 
-        //   PullRefreshIndicator(isLoading, pullRefreshState, Modifier.align(Alignment.TopCenter))
     }
 }
 
 @Composable
-fun MainThreadSectionListItem(item: ChannelThread, userViewModel: AuthViewModel = hiltViewModel()) {
+fun MainThreadSectionListItem(item: ChannelThread,
+                              channelDetailsViewModel: ChannelDetailsViewModel,
+                              functionPerform:()->Unit,
+) {
+   val userViewModel: AuthViewModel = hiltViewModel()
     userViewModel.onEvent(AuthEvents.GetUserDetailsById(item.threadPostedByUserId))
     val user = userViewModel.user?.collectAsState(initial = null)
-    Column(modifier = Modifier.fillMaxWidth()) {
+    Column(modifier = Modifier
+        .fillMaxWidth()
+        .clickable {
+            functionPerform()
+        }) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -213,8 +217,8 @@ fun MainThreadSectionListItem(item: ChannelThread, userViewModel: AuthViewModel 
             )
             Column(modifier = Modifier.weight(1f)) {
                 ThreadUserDetails(user?.value, item.threadPostedDate)
-                ThreadMainContent(item.mainThreadContent, item.mainThreadImageURI)
-                ReactionArea(item.reactionList)
+                ThreadMainContent(item.mainThreadContent, item.mainThreadImageURI,channelDetailsViewModel)
+                ReactionArea(item,channelDetailsViewModel)
             }
         }
         ReplyArea(item.replyCount)
@@ -233,10 +237,7 @@ fun ReplyArea(replyCount: Int) {
                     .border(
                         border = ButtonDefaults.outlinedBorder,
                         shape = RoundedCornerShape(4.dp)
-                    )
-                    .clickable {
-
-                    },
+                    ),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Image(
@@ -255,50 +256,64 @@ fun ReplyArea(replyCount: Int) {
 }
 
 @Composable
-fun ReactionArea(reactionList: List<Int>) {
+fun ReactionArea(
+    item: ChannelThread,
+    channelDetailsViewModel: ChannelDetailsViewModel
+) {
+    val prefManager= PrefManager(LocalContext.current)
+    val loggedInUserId=prefManager.userGsonToObj(prefManager.loggedInUserValue).id
+    val reactionList=item.reactionList
     Row(Modifier.fillMaxWidth()) {
-        when{
-            reactionList.isNotEmpty() ->{
+
                 ReactionItem(
                     painterResource(R.drawable.like_reaction),
-                    SlackBlue,
-                    reactionList[0].toString()
+                    if(reactionList.isNotEmpty() && reactionList[0].isNotEmpty()) SlackBlue  else Color.Gray,
+                    if(reactionList.isNotEmpty() && reactionList[0].isNotEmpty())reactionList[0].size.toString()  else "0",
+                    functionPerform = {
+                        channelDetailsViewModel.onEvent(
+                            ChannelEvents.UpdateThreadReaction(
+                                item,
+                                0,
+                                loggedInUserId)
+                        )
+                    }
                 )
                 ReactionItem(
                     painterResource(R.drawable.love_reaction),
-                    SlackRed,
-                    reactionList[1].toString()
+                    if(reactionList.isNotEmpty() && reactionList[1].isNotEmpty()) SlackRed  else Color.Gray,
+                    if(reactionList.isNotEmpty() && reactionList[1].isNotEmpty())reactionList[1].size.toString()  else "0",
+                    functionPerform = {
+                        channelDetailsViewModel.onEvent(
+                            ChannelEvents.UpdateThreadReaction(item,
+                                1,
+                                loggedInUserId)
+                        )
+                    }
+
                 )
                 ReactionItem(
                     painterResource(R.drawable.celebrate_reaction),
-                    SlackYellow,
-                    reactionList[2].toString()
+                    if(reactionList.isNotEmpty() && reactionList[2].isNotEmpty()) SlackYellow  else Color.Gray,
+                    if(reactionList.isNotEmpty() && reactionList[2].isNotEmpty())reactionList[2].size.toString()  else "0",
+                    functionPerform = {
+                        channelDetailsViewModel.onEvent(
+                            ChannelEvents.UpdateThreadReaction(item,
+                                2,
+                                loggedInUserId)
+                        )
+                    }
+
                 )
-            }
-            else->{
-                ReactionItem(
-                    painterResource(R.drawable.like_reaction),
-                    Color.Gray,
-                    "0"
-                )
-                ReactionItem(
-                    painterResource(R.drawable.love_reaction),
-                    Color.Gray,
-                    "0"
-                )
-                ReactionItem(
-                    painterResource(R.drawable.celebrate_reaction),
-                    Color.Gray,
-                    "0"
-                )
-            }
-        }
-        ReactionItem(painterResource(R.drawable.add_reaction), Color.Gray)
+
     }
 }
 
 @Composable
-fun ReactionItem(painterResource: Painter, color: Color, value: String = "0") {
+fun ReactionItem(painterResource: Painter,
+                 color: Color,
+                 value: String = "0",
+                 functionPerform:()->Unit,
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(start = 10.dp)
@@ -311,7 +326,7 @@ fun ReactionItem(painterResource: Painter, color: Color, value: String = "0") {
                 .height(50.dp)
                 .padding(end = 10.dp)
                 .clickable {
-
+                           functionPerform()
                 },
             colorFilter = ColorFilter.tint(color)
 
@@ -342,21 +357,26 @@ fun ThreadUserDetails(threadPostedByUser: User?, threadPostedDate: String) {
 }
 
 @Composable
-fun ThreadMainContent(mainThreadContent: String, mainThreadImageURI: String) {
+fun ThreadMainContent(
+    mainThreadContent: String?,
+    mainThreadImageURI: Uri?,
+    channelDetailsViewModel: ChannelDetailsViewModel
+) {
     Column(Modifier.fillMaxWidth()) {
-        Text(text = mainThreadContent)
+        when{
+            mainThreadContent!=null->
+                Text(text = mainThreadContent)
+        }
         when {
-            mainThreadImageURI.isNotEmpty() ->
+            mainThreadImageURI!=null ->
                 Image(
-                    painter = rememberAsyncImagePainter(mainThreadImageURI),
+                    painter = rememberAsyncImagePainter(channelDetailsViewModel.getVaultImageFromLocal(LocalContext.current,mainThreadImageURI)),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(300.dp)
                         .padding(top = 5.dp)
                 )
-
         }
-
     }
 }

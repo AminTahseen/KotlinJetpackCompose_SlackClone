@@ -1,5 +1,8 @@
 package com.example.kotlin_mvvm_slackclone.presentation.events
 
+import android.net.Uri
+import com.example.kotlin_mvvm_slackclone.data.models.ChannelThread
+
 sealed class ChannelEvents{
     data class OnChannelNameChange(val channelName: String): ChannelEvents()
     data class OnChannelVisibilityChange(val isPrivate:Boolean=false):ChannelEvents()
@@ -17,7 +20,13 @@ sealed class ChannelEvents{
     data class OnChannelThreadDetailsChange(val channelDetails:String):ChannelEvents()
     data class OnCreateChannelThread(
         val channelDetails:String,
+        val imageUri: Uri?,
         val threadByUserId:Int,
         val channelId:Int
+    ):ChannelEvents()
+    data class UpdateThreadReaction(
+        val thread:ChannelThread,
+        val reactionIndex:Int,
+        val loggedInUserId:Int
     ):ChannelEvents()
 }
