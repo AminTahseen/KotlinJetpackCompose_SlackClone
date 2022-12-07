@@ -33,20 +33,20 @@ class MockData {
                 1,
                 "MainChannel",
                 1,
-                listOf(1,2,3)),
+                mutableListOf(1,2,3)),
 
             MasterChannel(
                 2,
                 "OtherChannel",
                 2,
-                listOf(2,3))
+                mutableListOf(2,3))
         )
          val subChannelList= mutableListOf(
              SubChannel(
                  1,
                  "SubChannel1",
                  1,
-                 listOf(1,2),
+                 mutableListOf(1,2),
              1,
                  false
              ),
@@ -55,7 +55,7 @@ class MockData {
                  2,
                  "SubChannel2",
                  1,
-                 listOf(1,2),
+                 mutableListOf(1,2),
                  1,
                  true
              )
@@ -66,7 +66,7 @@ class MockData {
                 1,
                 "11 Sept 12:30 AM",
                 1,
-                listOf(listOf(1,2,3),listOf(1),listOf(1,2)),
+                mutableListOf(mutableListOf(1,2,3),mutableListOf(1),mutableListOf(1,2)),
                 2,
                 "Some Dummy content goes here"
             ),
@@ -75,7 +75,7 @@ class MockData {
                 1,
                 "11 Sept 12:30 AM",
                 1,
-                listOf(listOf(1,2,3),listOf(1),listOf(1,2)),
+                mutableListOf(mutableListOf(1,2,3),mutableListOf(1),mutableListOf(1,2)),
                 1,
                 "Another Dummy content goes here"
             )

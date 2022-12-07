@@ -7,7 +7,6 @@ import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.kotlin_mvvm_slackclone.common.utils.FileUtils
@@ -23,7 +22,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
@@ -33,66 +31,63 @@ import javax.inject.Inject
 class ChannelDetailsViewModel @Inject constructor(
     private val subChannelRepository: SubChannelRepository,
     private val channelThreadRepository: ChannelThreadRepository,
-): ViewModel() {
+) : ViewModel() {
 
-    private val _uiEvent= Channel<UIEvent> ()
-    val uiEvent=_uiEvent.receiveAsFlow()
+    private val _uiEvent = Channel<UIEvent>()
+    val uiEvent = _uiEvent.receiveAsFlow()
     var channelIdValue by mutableStateOf(-1)
         private set
 
-    var subChannel: Flow<SubChannel?>? =null
+    var subChannel: Flow<SubChannel?>? = null
 
-   var channelThreads= emptyFlow<List<ChannelThread>>()
+    var channelThreads = emptyFlow<List<ChannelThread>>()
 
-    private val _isLoading= MutableStateFlow(false)
-    val isLoading=_isLoading.asStateFlow()
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading = _isLoading.asStateFlow()
 
-    private val _showSearchBar= MutableStateFlow(false)
-    val showSearchBar=_showSearchBar.asStateFlow()
+    private val _showSearchBar = MutableStateFlow(false)
+    val showSearchBar = _showSearchBar.asStateFlow()
 
     // channel thread fields
     var channelThreadField by mutableStateOf("")
         private set
 
     init {
-        Log.d("channelThreadListView",MockData.subChannelThreadList.size.toString())
+        Log.d("channelThreadListView", MockData.subChannelThreadList.size.toString())
     }
-//    fun loadStuff(){
-//        viewModelScope.launch {
-//            _isLoading.value=true
-//            delay(3000L)
-//            _isLoading.value=false
-//        }
-//    }
-
-    private fun sendUIEvent(uiEvent: UIEvent){
+    private fun sendUIEvent(uiEvent: UIEvent) {
         viewModelScope.launch {
             _uiEvent.send(uiEvent)
         }
     }
-    fun onEvent(event: ChannelEvents){
-        when(event) {
-            is ChannelEvents.ShowChannelDetails->{
-                Log.d("channelThreadListView2",MockData.subChannelThreadList.size.toString())
-                channelIdValue=event.channelId
-                subChannel=subChannelRepository.getSubChannelById(channelIdValue)
-                channelThreads=channelThreadRepository.getChannelThreads(channelIdValue)
+
+    fun onEvent(event: ChannelEvents) {
+        when (event) {
+            is ChannelEvents.ShowChannelDetails -> {
+                Log.d("channelThreadListView2", MockData.subChannelThreadList.size.toString())
+                channelIdValue = event.channelId
+                subChannel = subChannelRepository.getSubChannelById(channelIdValue)
+                channelThreads = channelThreadRepository.getChannelThreads(channelIdValue)
 
             }
-            is ChannelEvents.ShowSearchBar->{
-                _showSearchBar.value=event.showSearch
+            is ChannelEvents.ShowSearchBar -> {
+                _showSearchBar.value = event.showSearch
             }
-            is ChannelEvents.AddChannelThread->{
-                sendUIEvent(UIEvent.NavigateToNewIntentWithId(Routes.ADD_CHANNEL_POST_ROUTE,event.channelId))
+            is ChannelEvents.AddChannelThread -> {
+                sendUIEvent(
+                    UIEvent.NavigateToNewIntentWithId(
+                        Routes.ADD_CHANNEL_POST_ROUTE, event.channelId
+                    )
+                )
             }
-            is ChannelEvents.OnChannelThreadDetailsChange->{
-                channelThreadField=event.channelDetails
+            is ChannelEvents.OnChannelThreadDetailsChange -> {
+                channelThreadField = event.channelDetails
             }
-            is ChannelEvents.OnCreateChannelThread->{
-                val threadDetails=event.channelDetails
-                val channelId=event.channelId
-                val userId=event.threadByUserId
-                val imageUri=event.imageUri
+            is ChannelEvents.OnCreateChannelThread -> {
+                val threadDetails = event.channelDetails
+                val channelId = event.channelId
+                val userId = event.threadByUserId
+                val imageUri = event.imageUri
                 val formatter = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")
                 } else {
@@ -100,40 +95,41 @@ class ChannelDetailsViewModel @Inject constructor(
                 }
                 val threadPostDate = LocalDateTime.now().format(formatter)
 
-                val replyCount=0
-                if(threadDetails.isNullOrEmpty() && imageUri==null){
+                val replyCount = 0
+                if (threadDetails.isNullOrEmpty() && imageUri == null) {
                     sendUIEvent(UIEvent.ShowSnackBar("Thread details are required !"))
-                }else{
-                    var thread: ChannelThread? =null
-                    if(imageUri!=null && !threadDetails.isNullOrEmpty())
-                    {
-                      thread = ChannelThread(
+                } else {
+                    var thread: ChannelThread? = null
+                    val reactionList = mutableListOf<MutableList<Int>>()
+
+                    if (imageUri != null && !threadDetails.isNullOrEmpty()) {
+                        thread = ChannelThread(
                             (3..100).random(),
                             userId,
                             threadPostDate,
                             channelId,
-                            emptyList(),
+                            reactionList,
                             replyCount,
                             threadDetails,
                             imageUri
                         )
-                    }else if(imageUri==null && !threadDetails.isNullOrEmpty()){
+                    } else if (imageUri == null && !threadDetails.isNullOrEmpty()) {
                         thread = ChannelThread(
                             (3..100).random(),
                             userId,
                             threadPostDate,
                             channelId,
-                            emptyList(),
+                            reactionList,
                             replyCount,
                             threadDetails,
                         )
-                    }else{
+                    } else {
                         thread = ChannelThread(
                             (3..100).random(),
                             userId,
                             threadPostDate,
                             channelId,
-                            emptyList(),
+                            reactionList,
                             replyCount,
                             null,
                             imageUri
@@ -149,30 +145,64 @@ class ChannelDetailsViewModel @Inject constructor(
                     }
                 }
             }
-            is ChannelEvents.UpdateThreadReaction->{
-                val thread=event.thread
-                val reactionIndex=event.reactionIndex
-                val loggedInUserId=event.loggedInUserId
-                Log.d("ReactionIndex :",reactionIndex.toString())
-                when{
-                    thread.reactionList.isEmpty()->{
+            is ChannelEvents.UpdateThreadReaction -> {
+                val thread = event.thread
+                var reactionIndex = event.reactionIndex
+                val loggedInUserId = event.loggedInUserId
 
-                    }
+                var reactionList = thread.reactionList
+                reactionList =  addRemoveReaction(
+                    reactionIndex,
+                    loggedInUserId,
+                    reactionList
+                )
+                Log.d("ReactionList :", reactionList.toString())
+//                thread.reactionList=reactionList
+//                Log.d("updatedThread",thread.toString())
+                channelThreads.map { it->
+                   it.toMutableList()
+                       .find { it.id==thread.id }?.reactionList=reactionList
                 }
+
             }
-            else->{
+            else -> {
 
             }
         }
     }
-
-    private suspend fun addThreadPost(thread: ChannelThread){
+    private fun addRemoveReaction(
+        reactionIndex:Int,
+        loggedInUserId:Int,
+        reactionList:MutableList<MutableList<Int>>
+    ):MutableList<MutableList<Int>>{
+        if (reactionList.isNotEmpty() && reactionList.indices.contains(reactionIndex)) {
+            //index does exists
+            Log.d("reaction", "emoji array Exists")
+            if (reactionList[reactionIndex].contains(loggedInUserId)) {
+                Log.d("reaction", "emoji array contains user reaction")
+                reactionList[reactionIndex].remove(loggedInUserId)
+            } else {
+                Log.d("reaction", "emoji array don't contain user reaction")
+                reactionList[reactionIndex].add(loggedInUserId)
+            }
+        } else {
+            // index does not exists
+            Log.d("reaction", "emoji array not Exists")
+            reactionList.add(
+                reactionIndex,
+                mutableListOf(loggedInUserId)
+            )
+        }
+        Log.d("threadReactions", reactionList.toString())
+        return reactionList
+    }
+    private suspend fun addThreadPost(thread: ChannelThread) {
         channelThreadRepository.createChannelThread(thread)
     }
 
-    fun getVaultImageFromLocal(context: Context,imageUri: Uri):Uri{
-        val fileUtils= FileUtils()
-        val fullFilePath: String? =fileUtils.getPathFromUri(context = context, uri = imageUri)
+    fun getVaultImageFromLocal(context: Context, imageUri: Uri): Uri {
+        val fileUtils = FileUtils()
+        val fullFilePath: String? = fileUtils.getPathFromUri(context = context, uri = imageUri)
         return Uri.parse(fullFilePath)
     }
 }

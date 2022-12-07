@@ -4,7 +4,7 @@ data class SubChannel(
     val id:Int,
     val channelName:String?,
     val channelCreatedByUserId:Int,
-    val channelMembersId:List<Int>,
+    val channelMembersId:MutableList<Int>,
     val mainMasterChannelId:Int,
     val isPrivateChannel:Boolean=false
 )

@@ -67,10 +67,11 @@ class MainScreenViewModel @Inject constructor(
                 if(channelName.isNullOrEmpty()){
                     sendUIEvent(UIEvent.ShowSnackBar("A channel name is required !"))
                 }else {
+                    val list= mutableListOf<Int>()
                     val subChannel = SubChannel(
                         (3..100).random(), channelName,
                         createdByUserId,
-                        emptyList(),
+                        list,
                         masterChannelId
                     )
                     viewModelScope.launch {

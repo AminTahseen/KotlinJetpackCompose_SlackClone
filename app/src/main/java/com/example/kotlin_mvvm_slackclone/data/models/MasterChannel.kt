@@ -4,6 +4,6 @@ data class MasterChannel(
     val id:Int,
     val channelName:String?,
     val channelCreatedByUserId:Int,
-    val channelMembersId:List<Int>
+    val channelMembersId:MutableList<Int>
 
 )

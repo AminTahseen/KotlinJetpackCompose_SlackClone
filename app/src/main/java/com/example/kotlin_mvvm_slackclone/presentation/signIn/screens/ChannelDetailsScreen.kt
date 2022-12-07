@@ -145,7 +145,7 @@ fun ChannelDetailsScreen(
 
             when {
                 channelThreadsList.value.isNotEmpty() ->
-                    MainThreadsSection(channelThreadsList.value, screenHeight,viewModel)
+                    MainThreadsSection(channelThreadsList.value, screenHeight, viewModel)
                 else ->
                     Text(text = "Loading...")
             }
@@ -159,7 +159,7 @@ fun MainThreadsSection(
     screenHeight: Dp,
     viewModel: ChannelDetailsViewModel
 ) {
-    Log.d("channelThreadListSize",value.size.toString())
+    Log.d("channelThreadListSize", value.size.toString())
     val indicatorWidth = 1.dp
     Box(
         modifier = Modifier
@@ -179,8 +179,8 @@ fun MainThreadsSection(
     {
         LazyColumn {
             items(value.reversed()) { item ->
-                MainThreadSectionListItem(item,viewModel, functionPerform = {
-                    Log.d("ThreadItem",item.id.toString())
+                MainThreadSectionListItem(item, viewModel, functionPerform = {
+                    Log.d("ThreadItem", item.id.toString())
                 })
             }
         }
@@ -189,11 +189,12 @@ fun MainThreadsSection(
 }
 
 @Composable
-fun MainThreadSectionListItem(item: ChannelThread,
-                              channelDetailsViewModel: ChannelDetailsViewModel,
-                              functionPerform:()->Unit,
+fun MainThreadSectionListItem(
+    item: ChannelThread,
+    channelDetailsViewModel: ChannelDetailsViewModel,
+    functionPerform: () -> Unit,
 ) {
-   val userViewModel: AuthViewModel = hiltViewModel()
+    val userViewModel: AuthViewModel = hiltViewModel()
     userViewModel.onEvent(AuthEvents.GetUserDetailsById(item.threadPostedByUserId))
     val user = userViewModel.user?.collectAsState(initial = null)
     Column(modifier = Modifier
@@ -217,8 +218,12 @@ fun MainThreadSectionListItem(item: ChannelThread,
             )
             Column(modifier = Modifier.weight(1f)) {
                 ThreadUserDetails(user?.value, item.threadPostedDate)
-                ThreadMainContent(item.mainThreadContent, item.mainThreadImageURI,channelDetailsViewModel)
-                ReactionArea(item,channelDetailsViewModel)
+                ThreadMainContent(
+                    item.mainThreadContent,
+                    item.mainThreadImageURI,
+                    channelDetailsViewModel
+                )
+                ReactionArea(item, channelDetailsViewModel)
             }
         }
         ReplyArea(item.replyCount)
@@ -260,59 +265,65 @@ fun ReactionArea(
     item: ChannelThread,
     channelDetailsViewModel: ChannelDetailsViewModel
 ) {
-    val prefManager= PrefManager(LocalContext.current)
-    val loggedInUserId=prefManager.userGsonToObj(prefManager.loggedInUserValue).id
-    val reactionList=item.reactionList
+    val prefManager = PrefManager(LocalContext.current)
+    val loggedInUserId = prefManager.userGsonToObj(prefManager.loggedInUserValue).id
+    val reactionList = item.reactionList
     Row(Modifier.fillMaxWidth()) {
 
-                ReactionItem(
-                    painterResource(R.drawable.like_reaction),
-                    if(reactionList.isNotEmpty() && reactionList[0].isNotEmpty()) SlackBlue  else Color.Gray,
-                    if(reactionList.isNotEmpty() && reactionList[0].isNotEmpty())reactionList[0].size.toString()  else "0",
-                    functionPerform = {
-                        channelDetailsViewModel.onEvent(
-                            ChannelEvents.UpdateThreadReaction(
-                                item,
-                                0,
-                                loggedInUserId)
-                        )
-                    }
+        ReactionItem(
+            painterResource(R.drawable.like_reaction),
+            if (reactionList.isNotEmpty() && reactionList[0].isNotEmpty()) SlackBlue else Color.Gray,
+            if (reactionList.isNotEmpty() && reactionList[0].isNotEmpty()) reactionList[0].size.toString() else "0",
+            functionPerform = {
+                channelDetailsViewModel.onEvent(
+                    ChannelEvents.UpdateThreadReaction(
+                        item,
+                        0,
+                        loggedInUserId
+                    )
                 )
-                ReactionItem(
-                    painterResource(R.drawable.love_reaction),
-                    if(reactionList.isNotEmpty() && reactionList[1].isNotEmpty()) SlackRed  else Color.Gray,
-                    if(reactionList.isNotEmpty() && reactionList[1].isNotEmpty())reactionList[1].size.toString()  else "0",
-                    functionPerform = {
-                        channelDetailsViewModel.onEvent(
-                            ChannelEvents.UpdateThreadReaction(item,
-                                1,
-                                loggedInUserId)
-                        )
-                    }
+            }
+        )
+        ReactionItem(
+            painterResource(R.drawable.love_reaction),
+            if (reactionList.isNotEmpty() && reactionList[1].isNotEmpty()) SlackRed else Color.Gray,
+            if (reactionList.isNotEmpty() && reactionList[1].isNotEmpty()) reactionList[1].size.toString() else "0",
+            functionPerform = {
+                channelDetailsViewModel.onEvent(
+                    ChannelEvents.UpdateThreadReaction(
+                        item,
+                        1,
+                        loggedInUserId
+                    )
+                )
+            }
 
+        )
+        ReactionItem(
+            painterResource(R.drawable.celebrate_reaction),
+            if (reactionList.isNotEmpty() && reactionList[2].isNotEmpty()) SlackYellow else Color.Gray,
+            if (reactionList.isNotEmpty() && reactionList[2].isNotEmpty()) reactionList[2].size.toString() else "0",
+            functionPerform = {
+                channelDetailsViewModel.onEvent(
+                    ChannelEvents.UpdateThreadReaction(
+                        item,
+                        2,
+                        loggedInUserId
+                    )
                 )
-                ReactionItem(
-                    painterResource(R.drawable.celebrate_reaction),
-                    if(reactionList.isNotEmpty() && reactionList[2].isNotEmpty()) SlackYellow  else Color.Gray,
-                    if(reactionList.isNotEmpty() && reactionList[2].isNotEmpty())reactionList[2].size.toString()  else "0",
-                    functionPerform = {
-                        channelDetailsViewModel.onEvent(
-                            ChannelEvents.UpdateThreadReaction(item,
-                                2,
-                                loggedInUserId)
-                        )
-                    }
+            }
 
-                )
+        )
 
     }
 }
 
 @Composable
-fun ReactionItem(painterResource: Painter,
-                 color: Color,
-                 value: String = "0",
-                 functionPerform:()->Unit,
+fun ReactionItem(
+    painterResource: Painter,
+    color: Color,
+    value: String = "0",
+    functionPerform: () -> Unit,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -326,7 +337,7 @@ fun ReactionItem(painterResource: Painter,
                 .height(50.dp)
                 .padding(end = 10.dp)
                 .clickable {
-                           functionPerform()
+                    functionPerform()
                 },
             colorFilter = ColorFilter.tint(color)
 
@@ -363,14 +374,19 @@ fun ThreadMainContent(
     channelDetailsViewModel: ChannelDetailsViewModel
 ) {
     Column(Modifier.fillMaxWidth()) {
-        when{
-            mainThreadContent!=null->
+        when {
+            mainThreadContent != null ->
                 Text(text = mainThreadContent)
         }
         when {
-            mainThreadImageURI!=null ->
+            mainThreadImageURI != null ->
                 Image(
-                    painter = rememberAsyncImagePainter(channelDetailsViewModel.getVaultImageFromLocal(LocalContext.current,mainThreadImageURI)),
+                    painter = rememberAsyncImagePainter(
+                        channelDetailsViewModel.getVaultImageFromLocal(
+                            LocalContext.current,
+                            mainThreadImageURI
+                        )
+                    ),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
