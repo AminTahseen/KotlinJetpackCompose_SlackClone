@@ -38,7 +38,7 @@ import com.example.kotlin_mvvm_slackclone.presentation.viewmodels.MainScreenView
 import com.example.kotlin_mvvm_slackclone.ui.theme.SlackRed
 import com.example.kotlin_mvvm_slackclone.utils.PrefManager
 import com.example.kotlin_mvvm_slackclone.utils.Routes
-import com.example.kotlin_mvvm_slackclone.utils.UIEvent
+import com.example.kotlin_mvvm_slackclone.presentation.events.UIEvent
 
 @Composable
 fun MainScreen(

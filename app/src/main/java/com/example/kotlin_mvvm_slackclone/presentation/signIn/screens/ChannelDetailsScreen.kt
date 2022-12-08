@@ -3,7 +3,6 @@
 package com.example.kotlin_mvvm_slackclone.presentation.signIn.screens
 
 import android.app.Activity
-import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import androidx.compose.foundation.*
@@ -12,9 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,10 +30,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.rememberAsyncImagePainter
-import com.example.kotlin_mvvm_slackclone.ChannelActivity
 import com.example.kotlin_mvvm_slackclone.R
 import com.example.kotlin_mvvm_slackclone.common.AppbarChannelInside
 import com.example.kotlin_mvvm_slackclone.data.models.ChannelThread
+import com.example.kotlin_mvvm_slackclone.data.models.SubChannel
 import com.example.kotlin_mvvm_slackclone.data.models.User
 import com.example.kotlin_mvvm_slackclone.presentation.events.AuthEvents
 import com.example.kotlin_mvvm_slackclone.presentation.events.ChannelEvents
@@ -44,8 +41,7 @@ import com.example.kotlin_mvvm_slackclone.presentation.viewmodels.AuthViewModel
 import com.example.kotlin_mvvm_slackclone.presentation.viewmodels.ChannelDetailsViewModel
 import com.example.kotlin_mvvm_slackclone.ui.theme.*
 import com.example.kotlin_mvvm_slackclone.utils.PrefManager
-import com.example.kotlin_mvvm_slackclone.utils.Routes
-import com.example.kotlin_mvvm_slackclone.utils.UIEvent
+import com.example.kotlin_mvvm_slackclone.presentation.events.UIEvent
 import java.util.*
 
 @Suppress("UNNECESSARY_SAFE_CALL")
@@ -53,12 +49,13 @@ import java.util.*
 fun ChannelDetailsScreen(
     channelId: Int,
     viewModel: ChannelDetailsViewModel = hiltViewModel(),
-) {
+    onNavigate: (UIEvent.Navigate) -> Unit,
+    ) {
     val context = LocalContext.current
     val activity = (context as? Activity)
     val scaffoldState: ScaffoldState = rememberScaffoldState()
     val subChannel = viewModel.subChannel?.collectAsState(initial = null)
-    val channelThreadsList = viewModel.channelThreads?.collectAsState(initial = emptyList())
+    var channelThreadsList = viewModel.channelThreads?.collectAsState(initial = emptyList())
     Log.d("channelThreadsList", channelThreadsList?.value?.size.toString())
     val configuration = LocalConfiguration.current
     val screenHeight = configuration.screenHeightDp.dp
@@ -68,17 +65,12 @@ fun ChannelDetailsScreen(
         viewModel.onEvent(ChannelEvents.ShowChannelDetails(channelId))
         viewModel.uiEvent.collect { value: UIEvent ->
             when (value) {
-                is UIEvent.NavigateToNewIntentWithId -> {
-                    if (value.intent == Routes.ADD_CHANNEL_POST_ROUTE) {
-                        val channelIntent = Intent(context, ChannelActivity::class.java)
-                        channelIntent.putExtra("channelId", value.id)
-                        channelIntent.putExtra("route", Routes.ADD_CHANNEL_POST_ROUTE)
-                        context.startActivity(channelIntent)
-                    }
+                is UIEvent.Navigate->{
+                    onNavigate(value)
                 }
-                is UIEvent.Loader -> {
-                    viewModel.onEvent(ChannelEvents.ShowChannelDetails(channelId))
-                    Log.d("channelThreadsList", "called...")
+                is UIEvent.LoadDataAgain->{
+                    Log.d("UiEvent", "load again")
+                    Log.d("channelThreadsList", channelThreadsList?.value.toString())
                 }
                 else -> {
 
@@ -100,10 +92,11 @@ fun ChannelDetailsScreen(
                             activity?.finish()
                         },
                         viewModel = viewModel,
-                        filterPerform = {
+                        functionPerform2 = {
                             viewModel.onEvent(ChannelEvents.ShowSearchBar(true))
-                        }
-                    )
+                        },
+                        painterResource(R.drawable.filter),
+                        )
                 else ->
                     AppbarChannelInside(
                         showBackBtn = true,
@@ -113,10 +106,11 @@ fun ChannelDetailsScreen(
                             activity?.finish()
                         },
                         viewModel = viewModel,
-                        filterPerform = {
+                        functionPerform2 = {
                             viewModel.onEvent(ChannelEvents.ShowSearchBar(true))
-                        }
-                    )
+                        },
+                        painterResource(R.drawable.filter),
+                        )
             }
         },
         floatingActionButton = {
@@ -144,8 +138,9 @@ fun ChannelDetailsScreen(
         ) {
 
             when {
-                channelThreadsList.value.isNotEmpty() ->
-                    MainThreadsSection(channelThreadsList.value, screenHeight, viewModel)
+                channelThreadsList.value.isNotEmpty() ->{
+                    MainThreadsSection(channelThreadsList.value, screenHeight, viewModel,subChannel)
+                }
                 else ->
                     Text(text = "Loading...")
             }
@@ -157,7 +152,8 @@ fun ChannelDetailsScreen(
 fun MainThreadsSection(
     value: List<ChannelThread>,
     screenHeight: Dp,
-    viewModel: ChannelDetailsViewModel
+    viewModel: ChannelDetailsViewModel,
+    subChannel: State<SubChannel?>?
 ) {
     Log.d("channelThreadListSize", value.size.toString())
     val indicatorWidth = 1.dp
@@ -181,6 +177,7 @@ fun MainThreadsSection(
             items(value.reversed()) { item ->
                 MainThreadSectionListItem(item, viewModel, functionPerform = {
                     Log.d("ThreadItem", item.id.toString())
+                    viewModel.onEvent(ChannelEvents.ThreadDetails(item.id,subChannel?.value?.channelName.toString()))
                 })
             }
         }
@@ -245,15 +242,21 @@ fun ReplyArea(replyCount: Int) {
                     ),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Image(
-                    painter = (painterResource(R.drawable.reply)),
-                    contentDescription = "",
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier
-                        .height(50.dp)
-                        .padding(start = 10.dp, end = 10.dp),
-                    colorFilter = ColorFilter.tint(Color.Gray)
-                )
+
+                Box(modifier = Modifier.padding(end = 10.dp, start = 10.dp)) {
+                    Row {
+                        listOf("Amin Tahseen", "Ahmed Ali", "Tauheed Khan").map {
+                            Image(
+                                painter = rememberAsyncImagePainter(model = "https://ui-avatars.com/api/?name=$it&background=fdcb6e&color=000"),
+                                contentDescription = "",
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier
+                                    .height(50.dp)
+                                    .padding(start = 5.dp),
+                            )
+                        }
+                    }
+                }
                 Text(text = "$replyCount Replies", color = Color.Gray, fontWeight = FontWeight.Bold)
             }
     }
@@ -268,12 +271,21 @@ fun ReactionArea(
     val prefManager = PrefManager(LocalContext.current)
     val loggedInUserId = prefManager.userGsonToObj(prefManager.loggedInUserValue).id
     val reactionList = item.reactionList
-    Row(Modifier.fillMaxWidth()) {
+    val refresh=channelDetailsViewModel.refreshReactions.collectAsState()
 
+    Row(Modifier.fillMaxWidth()) {
+        if(refresh.value){
+            Log.d("updateList","update")
+            val value =channelDetailsViewModel.checkIfReactionExists(
+                reactionList[0], loggedInUserId)
+            Log.d("updateFOUND","$value")
+
+        }
         ReactionItem(
             painterResource(R.drawable.like_reaction),
-            if (reactionList.isNotEmpty() && reactionList[0].isNotEmpty()) SlackBlue else Color.Gray,
-            if (reactionList.isNotEmpty() && reactionList[0].isNotEmpty()) reactionList[0].size.toString() else "0",
+            if (reactionList.isNotEmpty() && channelDetailsViewModel.checkIfReactionExists(
+                    reactionList[0], loggedInUserId)) SlackBlue else Color.Gray,
+            if (0 in 0..reactionList.lastIndex) reactionList[0].size.toString() else "0",
             functionPerform = {
                 channelDetailsViewModel.onEvent(
                     ChannelEvents.UpdateThreadReaction(
@@ -286,8 +298,9 @@ fun ReactionArea(
         )
         ReactionItem(
             painterResource(R.drawable.love_reaction),
-            if (reactionList.isNotEmpty() && reactionList[1].isNotEmpty()) SlackRed else Color.Gray,
-            if (reactionList.isNotEmpty() && reactionList[1].isNotEmpty()) reactionList[1].size.toString() else "0",
+            if (reactionList.isNotEmpty() && channelDetailsViewModel.checkIfReactionExists(
+                    reactionList[1], loggedInUserId)) SlackRed else Color.Gray,
+            if (reactionList.isNotEmpty() && (1 in 0..reactionList.lastIndex)) reactionList[1].size.toString() else "0",
             functionPerform = {
                 channelDetailsViewModel.onEvent(
                     ChannelEvents.UpdateThreadReaction(
@@ -301,8 +314,9 @@ fun ReactionArea(
         )
         ReactionItem(
             painterResource(R.drawable.celebrate_reaction),
-            if (reactionList.isNotEmpty() && reactionList[2].isNotEmpty()) SlackYellow else Color.Gray,
-            if (reactionList.isNotEmpty() && reactionList[2].isNotEmpty()) reactionList[2].size.toString() else "0",
+            if (reactionList.isNotEmpty() && channelDetailsViewModel.checkIfReactionExists(
+                    reactionList[2], loggedInUserId)) SlackYellow else Color.Gray,
+            if (reactionList.isNotEmpty() && (2 in 0..reactionList.lastIndex)) reactionList[2].size.toString() else "0",
             functionPerform = {
                 channelDetailsViewModel.onEvent(
                     ChannelEvents.UpdateThreadReaction(

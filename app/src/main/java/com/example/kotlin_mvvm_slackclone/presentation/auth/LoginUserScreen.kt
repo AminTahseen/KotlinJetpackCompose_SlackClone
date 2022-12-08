@@ -26,7 +26,7 @@ import com.example.kotlin_mvvm_slackclone.presentation.viewmodels.AuthViewModel
 import com.example.kotlin_mvvm_slackclone.ui.theme.SlackPurple
 import com.example.kotlin_mvvm_slackclone.ui.theme.SlackRed
 import com.example.kotlin_mvvm_slackclone.utils.Routes
-import com.example.kotlin_mvvm_slackclone.utils.UIEvent
+import com.example.kotlin_mvvm_slackclone.presentation.events.UIEvent
 
 @Composable
 fun LoginUserScreen(

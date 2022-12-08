@@ -5,7 +5,7 @@ import android.util.Log
 import androidx.lifecycle.*
 import com.example.kotlin_mvvm_slackclone.domain.repository.UsersRepository
 import com.example.kotlin_mvvm_slackclone.utils.Routes
-import com.example.kotlin_mvvm_slackclone.utils.UIEvent
+import com.example.kotlin_mvvm_slackclone.presentation.events.UIEvent
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -14,7 +14,6 @@ import javax.inject.Inject
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import com.example.kotlin_mvvm_slackclone.data.models.SubChannel
 import com.example.kotlin_mvvm_slackclone.data.models.User
 import com.example.kotlin_mvvm_slackclone.domain.repository.MasterChannelRepository
 import com.example.kotlin_mvvm_slackclone.presentation.events.AuthEvents

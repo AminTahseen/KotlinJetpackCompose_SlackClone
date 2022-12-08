@@ -17,5 +17,6 @@ object Routes {
     const val ADD_CHANNEL_ROUTE="/add-channel"
     const val CHANNEL_DETAILS_ROUTE="/channel-details" // /channel-details/:id
     const val ADD_CHANNEL_POST_ROUTE="/add-channel-post"
+    const val THREAD_POST_DETAILS_ROUTE="/thread-details"
 
 }

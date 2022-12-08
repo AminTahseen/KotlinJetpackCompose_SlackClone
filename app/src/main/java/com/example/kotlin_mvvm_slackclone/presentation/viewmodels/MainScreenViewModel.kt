@@ -10,14 +10,13 @@ import androidx.lifecycle.viewModelScope
 import com.example.kotlin_mvvm_slackclone.data.MockData
 import com.example.kotlin_mvvm_slackclone.data.models.SubChannel
 import com.example.kotlin_mvvm_slackclone.domain.repository.SubChannelRepository
-import com.example.kotlin_mvvm_slackclone.presentation.events.AuthEvents
 import com.example.kotlin_mvvm_slackclone.presentation.events.ChannelEvents
 import com.example.kotlin_mvvm_slackclone.utils.PrefManager
 import com.example.kotlin_mvvm_slackclone.utils.Routes
-import com.example.kotlin_mvvm_slackclone.utils.UIEvent
+import com.example.kotlin_mvvm_slackclone.presentation.events.UIEvent
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -28,12 +27,11 @@ class MainScreenViewModel @Inject constructor(
     private val subChannelRepository: SubChannelRepository
 ): ViewModel() {
     private val prefManager= PrefManager(application.applicationContext)
-
-    val subChannelsPublicList=subChannelRepository
-        .getSubChannelChannels(prefManager.masterChannelGsonToObj(prefManager.masterChannelValue).id,false)
+    var subChannelsPublicList: MutableStateFlow<List<SubChannel>> = MutableStateFlow(emptyList())
 
     init {
         Log.d("listSizeee",subChannelsPublicList.toString())
+        getAllSubChannels()
     }
     var channelNameField by mutableStateOf("")
         private set
@@ -49,6 +47,16 @@ class MainScreenViewModel @Inject constructor(
     private fun sendUIEvent(uiEvent: UIEvent){
         viewModelScope.launch {
             _uiEvent.send(uiEvent)
+        }
+    }
+    private fun getAllSubChannels(){
+        viewModelScope.launch {
+            subChannelRepository
+                .getSubChannelChannels(
+                    prefManager.masterChannelGsonToObj(prefManager.masterChannelValue).id,
+                    false).collect{
+                    subChannelsPublicList.value=it
+                }
         }
     }
     fun onEvent(event: ChannelEvents){

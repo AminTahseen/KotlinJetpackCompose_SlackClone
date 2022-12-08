@@ -21,7 +21,7 @@ import com.example.kotlin_mvvm_slackclone.common.AppbarLoggedIn
 import com.example.kotlin_mvvm_slackclone.presentation.events.ChannelEvents
 import com.example.kotlin_mvvm_slackclone.presentation.viewmodels.MainScreenViewModel
 import com.example.kotlin_mvvm_slackclone.utils.PrefManager
-import com.example.kotlin_mvvm_slackclone.utils.UIEvent
+import com.example.kotlin_mvvm_slackclone.presentation.events.UIEvent
 
 @Composable
 fun AddChannelScreen(
