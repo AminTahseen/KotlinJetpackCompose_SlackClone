@@ -31,6 +31,9 @@ class ChannelThreadDaoImpl : ChannelThreadDao {
     }
 
     override fun getChannelThreadById(threadId: Int): Flow<ChannelThread?> {
-        TODO("Not yet implemented")
+        val thread=channelThreadList.map { list ->
+            list.find  { it.id==threadId}
+        }
+        return thread
     }
 }
